@@ -1,6 +1,5 @@
 import logging
 import datetime
-import sys
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -21,7 +20,7 @@ logging.basicConfig(
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 # set a format which is simpler for console use
-formatter = logging.Formatter('%(name)s: %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(process)d:[%(levelname)s]: %(message)s')
 console.setFormatter(formatter)
 # add the handler to the logger
 logger.addHandler(console)

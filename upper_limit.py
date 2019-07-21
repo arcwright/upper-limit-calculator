@@ -20,6 +20,7 @@ STAGES:
 Changes
 =======
 2019-07/17 - Added nbeams and finetuning parameters
+2019-07/21 - Added logging
 '''
 
 import os
@@ -32,8 +33,6 @@ from astroquery.ned import Ned
 import numpy as np
 
 execfile('modules.py')
-# execfile('mylogging.py')
-# import mylogging
 
 while True:
 	clean_task = str(raw_input('Choose CLEAN algorithm to use:\n\
@@ -45,7 +44,8 @@ Your choice is... '))
 		continue
 	else:
 		break
-logger.info('Running upper limit estimator.\n')
+		
+logger.info('Running upper limit estimator...\n')
 
 img_rms = estimateRMS(imgfile, x0, y0, rms_reg)
 
