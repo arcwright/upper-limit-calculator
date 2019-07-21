@@ -1,5 +1,5 @@
 execfile('params.py')
-
+execfile('mylogging.py')
 
 def replaceCheck(dir1, dir2):
     if os.path.exists(dir1):
@@ -45,7 +45,7 @@ def createHalo(imageref, centre_x, centre_y, size, totflux, ftype):
     '''
     ref_halo = '.'.join(imageref.split('.')[:-1]) + '_reffreq_flux_{:f}Jy_{}.image'.\
         format(totflux, ftype)
-    print('Creating halo image - {}'.format(ref_halo.split('/')[-1]))
+    logger.info('Creating halo image - {}'.format(ref_halo.split('/')[-1]))
     replaceCheck(ref_halo, imageref)
 
     ia.open(ref_halo)
@@ -69,12 +69,12 @@ def createHalo(imageref, centre_x, centre_y, size, totflux, ftype):
             amplitude=totflux, alpha=0.0, x_cutoff=rh/2.6)
         Z = np.sqrt((X-centre_x)**2 + (Y-centre_y)**2)
         newim = e(Z)
-    print('Unnormalised Total Flux 	: {:f}'.format(np.sum(newim)))
+    logger.info('Unnormalised Total Flux 	: {:f}'.format(np.sum(newim)))
     ratio = totflux/np.sum(newim)
     beam2 = ratio*newim
-    print('Scaled Total Flux 		: {:f}'.format(np.sum(beam2)))
+    logger.info('Scaled Total Flux 		: {:f}'.format(np.sum(beam2)))
     ia.putchunk(beam2)
-    print('Created halo with Integrated flux `{:f} Jy` and profile `{}` at a redshift `z={}` with size `{} kpc`.'.format(
+    logger.info('Created halo with Integrated flux `{:f} Jy` and profile `{}` at a redshift `z={}` with size `{} kpc`.'.format(
         totflux, ftype, z, l))
     ia.close()
     return ref_halo
@@ -94,14 +94,13 @@ def addHaloVis(msfile, halofile, flux, spix):
 
     myms = '.'.join(msfile.split('.')[:-1]) + \
         '_wHalo_flux_{:f}.MS'.format(flux)
-    print(
-        '\nCreating modified visibility file - {}'.format(myms.split('/')[-1]))
+    logger.info('Creating modified visibility file - {}'.format(myms.split('/')[-1]))
     replaceCheck(myms, msfile)
 
-    print('Scaling halo flux to spw frequencies...')
+    logger.info('Scaling halo flux to spw frequencies...')
     reffreq = np.max([imhead(imgfile)['refval'][2],
                       imhead(imgfile)['refval'][3]])
-    print('Halo Reference frequency 	= {:.2f} MHz'.format(reffreq/1.e6))
+    logger.info('Halo Reference frequency 	= {:.2f} MHz'.format(reffreq/1.e6))
 
     for j, f in enumerate(freq):
         try:
@@ -114,13 +113,13 @@ def addHaloVis(msfile, halofile, flux, spix):
             ft(vis=myms, model=newhalo, spw='0:'+str(j), usescratch=True)
             shutil.rmtree(newhalo)
         except Exception as e:
-            print('Something went wrong. Check for error!')
-            print(e)
+            logger.error('Something went wrong. Check for error!')
+            logger.error(e)
             break
     default(uvsub)
     uvsub(vis=myms, reverse=True)
-    print('DONE!\n')
-    print('Visibility file with halo created!')
+    logger.info('DONE!\n')
+    logger.info('Visibility file with halo created!')
     return myms
 
 
@@ -168,7 +167,7 @@ def myConvolve(image, output, bopts):
 
 
 def estimateRMS(image, x0, y0, radius):
-    print('\nEstimating RMS in {} around x={}, y={} with radius {:.2f}\'.\n'.
+    logger.info('Estimating RMS in {} around x={}, y={} with radius {:.2f}\'.\n'.
           format(image.split('/')[-1], x0, y0, radius/60.))
     fitsfile = '.'.join(image.split('.')[:-1]) + '.fits'
     exportfits(imagename=image, fitsimage=fitsfile, overwrite=True)
@@ -182,12 +181,12 @@ def estimateRMS(image, x0, y0, radius):
     os.remove(rmsfile)
     os.remove(bkgfile)
     shutil.rmtree(rmsimage)
-    print('\nRMS estimated to be {:.3f} mJy/beam.\n'.format(rms*1.e3))
+    logger.info('RMS estimated to be {:.3f} mJy/beam.\n'.format(rms*1.e3))
     return rms
 
 
 def run_imaging(task, output):
-    print('Running deconvolution now:')
+    logger.info('Running deconvolution now:')
     if task in ('tclean', '1'):
         default(tclean)
         tclean(vis=newvis, imagename=output, niter=N, threshold=thresh, deconvolver=dcv,

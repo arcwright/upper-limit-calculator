@@ -1,8 +1,8 @@
 # INPUT PARAMETERS
 bane_pth= '/home/lijo/.local/bin/BANE'						# Path to BANE executable
-srcdir	= '/media/lijo/data/upper_limit_calculator/sources/PLCKG200/'	# Source Directory
+srcdir	= '/media/lijo/LINUX/Work/upper-limit-calculator/sources/'	# Source Directory
 visfile = srcdir + '/' + 'PLCK200_610_APCALUVDATA.MS'   				# Reference visibility file
-imgfile = srcdir + '/' + 'PLCK200_610_APCALUVDATA_i10000.image' 			# Reference image file made from 'vis'
+imgfile = srcdir + '/' + 'PLCK200_610_APCALUVDATA.IMAGE' 			# Reference image file made from 'vis'
 # z       = 1.059
 cluster = 'PLCK G200.9-28.2'								# Cluster name (optional)
 z       = float(Ned.query_object(cluster)['Redshift'])	# Redshift of source

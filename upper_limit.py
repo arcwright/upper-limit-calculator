@@ -32,6 +32,8 @@ from astroquery.ned import Ned
 import numpy as np
 
 execfile('modules.py')
+# execfile('mylogging.py')
+# import mylogging
 
 while True:
 	clean_task = str(raw_input('Choose CLEAN algorithm to use:\n\
@@ -43,15 +45,16 @@ Your choice is... '))
 		continue
 	else:
 		break
+logger.info('Running upper limit estimator.\n')
 
 img_rms = estimateRMS(imgfile, x0, y0, rms_reg)
 
 # Convolve original image (Set last parameter as either 'factor' OR 'beam')
 i1_conv = '.'.join(imgfile.split('.')[:-1]) + '.conv'
-print('Convolving and getting statistics for input image:')
+logger.info('Convolving and getting statistics for input image:')
 i1_conv = myConvolve(imgfile, i1_conv, 'num_of_beams')
 i1_stats = getStats(i1_conv, x0, y0, radius)
-print('DONE!\n')
+logger.info('DONE!\n')
 
 thresh = thresh_f * img_rms			# Threshold to CLEAN
 flx_list = [f*img_rms for f in flx_fac]  # List of Halo fluxes to be injected
@@ -65,38 +68,40 @@ for i, flux in enumerate(flx_list):
             run_imaging(clean_task, otpt)
             break
         except Exception as e:
-            print('Something went wrong. Please try again!')
+            logger.error('Something went wrong. Please try again!')
             sys.exit(1)
 
     # Convolve new images (Set last parameter as either 'factor' OR 'beam')
-    print('\nConvolving new image and getting statistics...')
+    logger.info('\nConvolving new image and getting statistics...')
     if clean_task in ('wsclean', '2'):
         importfits(fitsimage=otpt+'-image.fits', imagename=otpt+'.image')
     i2_conv = otpt + '.conv'
     i2_conv = myConvolve(otpt+'.image', i2_conv, 'num_of_beams')
     i2_stats = getStats(i2_conv, x0, y0, radius)
-    print('DONE!\n')
+    logger.info('DONE!\n')
 
     excessFlux = i2_stats['flux'][0]-i1_stats['flux'][0]
     recovery = (excessFlux/i1_stats['flux'][0]) * 100.
-    print('Excess flux in central {:.2f}\' region = {:.2f} mJy'.format(
+    logger.info('Excess flux in central {:.2f}\' region = {:.2f} mJy'.format(
         theta/60., excessFlux*1.e3))
-    print('Halo flux recovered = {:.2f}%'.format(recovery))
+    logger.info('Halo flux recovered = {:.2f}%'.format(recovery))
     cleanup(srcdir)
     clearcal(vis=visfile)
     clearstat()
-    print('----')
+    logger.info('----')
     if recovery > recv_th:
-    	print('Recovery threshold reached.\nFinetuning now...')
+    	logger.info('Recovery threshold reached.\nFinetuning now...')
     	break
 
 try:
 	new_flx_list = np.linspace(flx_list[i], flx_list[i-1], 6)
 	new_flx_list = new_flx_list[1:-1]
+except Exception as e:
+	logger.error(e)
 else:
 	new_flx_list = np.arange(flx_list[i], 10)
 
-print('Repeating process for new flux values...\n')
+logger.info('Repeating process for new flux values...\n')
 for flux in new_flx_list:
 	haloimg = createHalo(imgfile, x0, y0, hsize, flux, ftype)
 	newvis = addHaloVis(visfile, haloimg, flux, alpha)
@@ -104,25 +109,26 @@ for flux in new_flx_list:
 	while True:
 		try:
 			run_imaging(clean_task, otpt)
+			break
 		except Exception as e:
-			print('Something went wrong. Please try again!')
+			logger.error('Something went wrong. Please try again!')
 			sys.exit(1)
 
 	# Convolve new images (Set last parameter as either 'factor' OR 'beam')
-	print('\nConvolving new image and getting statistics...')
+	logger.info('\nConvolving new image and getting statistics...')
 	if clean_task in ('wsclean', '2'):
 		importfits(fitsimage=otpt+'-image.fits', imagename=otpt+'.image')
 	i2_conv = otpt + '.conv'
 	i2_conv = myConvolve(otpt+'.image', i2_conv, 'num_of_beams')
 	i2_stats = getStats(i2_conv, x0, y0, radius)
-	print('DONE!\n')
+	logger.info('DONE!\n')
 
 	excessFlux = i2_stats['flux'][0]-i1_stats['flux'][0]
 	recovery = (excessFlux/i1_stats['flux'][0]) * 100.
-	print('Excess flux in central {:.2f}\' region = {:.2f} mJy'.format(
+	logger.info('Excess flux in central {:.2f}\' region = {:.2f} mJy'.format(
 		theta/60., excessFlux*1.e3))
-	print('Halo flux recovered = {:.2f}%'.format(recovery))
+	logger.info('Halo flux recovered = {:.2f}%'.format(recovery))
 	cleanup(srcdir)
 	clearcal(vis=visfile)
 	clearstat()
-	print('----')
+	logger.info('----')
