@@ -56,8 +56,8 @@ i1_conv = myConvolve(imgfile, i1_conv, 'num_of_beams')
 i1_stats = getStats(i1_conv, x0, y0, radius)
 logger.info('DONE!\n')
 
-thresh = thresh_f * img_rms			# Threshold to CLEAN
-flx_list = [f*img_rms for f in flx_fac]  # List of Halo fluxes to be injected
+thresh = thresh_f * img_rms				# Threshold to CLEAN
+flx_list = [f*img_rms for f in flx_fac] # List of Halo fluxes to be injected
 
 for i, flux in enumerate(flx_list):
     haloimg = createHalo(imgfile, x0, y0, hsize, flux, ftype)
@@ -88,18 +88,17 @@ for i, flux in enumerate(flx_list):
     cleanup(srcdir)
     clearcal(vis=visfile)
     clearstat()
-    logger.info('----')
+    print('----')
     if recovery > recv_th:
-    	logger.info('Recovery threshold reached.\nFinetuning now...')
-    	break
+    	logger.info('Recovery threshold reached.')
+       	break
 
-try:
-	new_flx_list = np.linspace(flx_list[i], flx_list[i-1], 6)
-	new_flx_list = new_flx_list[1:-1]
-except Exception as e:
-	logger.error(e)
+if i > 0:
+	new_flx_list = np.linspace(flx_list[i], flx_list[i-1], num=6, endpoint=False)
+	new_flx_list = new_flx_list[1:]
 else:
-	new_flx_list = np.arange(flx_list[i], 10)
+	new_flx_list = [f*img_rms for f in np.arange(0, flx_fac[i], 10)]
+	new_flx_list = new_flx_list[:0:-1]
 
 logger.info('Repeating process for new flux values...\n')
 for flux in new_flx_list:

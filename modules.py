@@ -3,7 +3,9 @@ execfile('mylogging.py')
 
 def replaceCheck(dir1, dir2):
     if os.path.exists(dir1):
+        print('\n')
         ovr = raw_input('Directory already exists. Overwrite? (y/n): ')
+        print('\n')
         if ovr in ('y', 'Y'):
             shutil.rmtree(dir1)
             shutil.copytree(dir2, dir1)
@@ -69,10 +71,10 @@ def createHalo(imageref, centre_x, centre_y, size, totflux, ftype):
             amplitude=totflux, alpha=0.0, x_cutoff=rh/2.6)
         Z = np.sqrt((X-centre_x)**2 + (Y-centre_y)**2)
         newim = e(Z)
-    logger.info('Unnormalised Total Flux 	: {:f}'.format(np.sum(newim)))
+    logger.info('Unnormalised Total flux:   {:f}'.format(np.sum(newim)))
     ratio = totflux/np.sum(newim)
     beam2 = ratio*newim
-    logger.info('Scaled Total Flux 		: {:f}'.format(np.sum(beam2)))
+    logger.info('Scaled Total Flux: {:f}'.format(np.sum(beam2)))
     ia.putchunk(beam2)
     logger.info('Created halo with Integrated flux `{:f} Jy` and profile `{}` at a redshift `z={}` with size `{} kpc`.'.format(
         totflux, ftype, z, l))
@@ -131,7 +133,7 @@ def cleanup(loc):
         try:
             shutil.rmtree(f)
         except Exception as e:
-            print(e)
+            logger.error(e)
 
 
 def getStats(image, x0, y0, radius):
