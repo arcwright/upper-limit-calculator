@@ -100,8 +100,8 @@ def addHaloVis(msfile, halofile, flux, spix):
     replaceCheck(myms, msfile)
 
     logger.info('Scaling halo flux to spw frequencies...')
-    reffreq = np.max([imhead(imgfile)['refval'][2],
-                      imhead(imgfile)['refval'][3]])
+    reffreq = np.max([imhead(imgpath)['refval'][2],
+                      imhead(imgpath)['refval'][3]])
     logger.info('Halo Reference frequency 	= {:.2f} MHz'.format(reffreq/1.e6))
 
     for j, f in enumerate(freq):
