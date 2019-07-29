@@ -19,8 +19,9 @@ STAGES:
 --------------------------------------------------------
 Changes
 =======
-2019-07/17 - Added nbeams and finetuning parameters
-2019-07/21 - Added logging
+2019/07/17 - Added nbeams and finetuning parameters
+2019/07/21 - Added logging
+2019/07/29 - Minor changes
 '''
 
 import os
@@ -56,8 +57,8 @@ i1_conv = myConvolve(imgpath, i1_conv, 'num_of_beams')
 i1_stats = getStats(i1_conv, x0, y0, radius)
 logger.info('DONE!\n')
 
-thresh = thresh_f * img_rms				# Threshold to CLEAN
-flx_list = [f * img_rms for f in flx_fac]  # List of Halo fluxes to be injected
+thresh = thresh_f * img_rms					# Threshold to CLEAN
+flx_list = [f * img_rms for f in flx_fac]  	# List of Halo fluxes to be injected
 
 for i, flux in enumerate(flx_list):
     haloimg = createHalo(imgpath, x0, y0, hsize, flux, ftype)
@@ -66,13 +67,14 @@ for i, flux in enumerate(flx_list):
     while True:
         try:
             run_imaging(clean_task, otpt)
+            logger.info('DONE!')
             break
         except Exception as e:
             logger.error('Something went wrong. Please try again!')
             sys.exit(1)
 
     # Convolve new images (Set last parameter as either 'factor' OR 'beam')
-    logger.info('\nConvolving new image and getting statistics...')
+    logger.info('Convolving new image and getting statistics...')
     if clean_task in ('wsclean', '2'):
         importfits(fitsimage=otpt + '-image.fits', imagename=otpt + '.image')
     i2_conv = otpt + '.conv'
@@ -84,13 +86,14 @@ for i, flux in enumerate(flx_list):
     recovery = (excessFlux / i1_stats['flux'][0]) * 100.
     logger.info('Excess flux in central {:.2f}\' region = {:.2f} mJy'.format(
         theta / 60., excessFlux * 1.e3))
-    logger.info('Halo flux recovered = {:.2f}%'.format(recovery))
+    logger.info('Halo flux recovered = {:.2f}%\n----\n'.format(recovery))
     cleanup(srcdir)
     clearcal(vis=vispath)
     clearstat()
-    print('----')
+    # print('----')
     if recovery > recv_th:
-        logger.info('Recovery threshold reached.')
+        logger.info('\n#####\nRecovery threshold reached.\n\
+        	Repeating process for new flux values...\n#####')
         break
 
 if i > 0:
@@ -101,7 +104,6 @@ else:
     new_flx_list = [f * img_rms for f in np.arange(0, flx_fac[i], 10)]
     new_flx_list = new_flx_list[:0:-1]
 
-logger.info('Repeating process for new flux values...\n')
 for flux in new_flx_list:
     haloimg = createHalo(imgpath, x0, y0, hsize, flux, ftype)
     newvis = addHaloVis(vispath, haloimg, flux, alpha)
