@@ -22,6 +22,7 @@ Changes
 2019/07/17 - Added nbeams and finetuning parameters
 2019/07/21 - Added logging
 2019/07/29 - Minor changes
+2019/08/14 - Added getCoords
 '''
 
 import os
@@ -35,27 +36,33 @@ import numpy as np
 
 execfile('modules.py')
 
-while True:
-    clean_task = str(raw_input('Choose CLEAN algorithm to use:\n\
-	1. tclean\n\
-	2. wsclean\n\n\
-Your choice is... '))
-    if clean_task not in ('1', 'tclean', '2', 'wsclean'):
-        print('No proper option given. Try again...')
-        continue
-    else:
-        break
+# while True:
+#     clean_task = str(raw_input('Choose CLEAN algorithm to use:\n\
+# 	1. tclean\n\
+# 	2. wsclean\n\n\
+# Your choice is... '))
+#     if clean_task not in ('1', 'tclean', '2', 'wsclean'):
+#         print('No proper option given. Try again...')
+#         continue
+#     else:
+#         break
 
-logger.info('Running upper limit estimator...\n')
+logger.info('Running upper limit estimator...')
+logger.info('Output log file: {}\n'.format(logname))
+
+if cluster != '':
+    x0,y0	= getCoords(imgpath, cluster)
+else:
+    x0,y0   = imhead(imgpath)['refpix'][0], imhead(imgpath)['refpix'][1]
 
 img_rms = estimateRMS(imgpath, x0, y0, rms_reg)
 
-# Convolve original image (Set last parameter as either 'factor' OR 'beam')
+# Convolve original image (Set last parameter as either 'beam', 'factor' or 'num_of_beams')
 i1_conv = '.'.join(imgpath.split('.')[:-1]) + '.conv'
 logger.info('Convolving and getting statistics for input image:')
 i1_conv = myConvolve(imgpath, i1_conv, 'num_of_beams')
 i1_stats = getStats(i1_conv, x0, y0, radius)
-logger.info('DONE!\n')
+logger.info('Done!\n')
 
 thresh = thresh_f * img_rms					# Threshold to CLEAN
 flx_list = [f * img_rms for f in flx_fac]  	# List of Halo fluxes to be injected
@@ -66,8 +73,8 @@ for i, flux in enumerate(flx_list):
     otpt = '.'.join(imgpath.split('.')[:-1]) + '_wHalo_flux_{:f}'.format(flux)
     while True:
         try:
-            run_imaging(clean_task, otpt)
-            logger.info('DONE!')
+            run_imaging(cln_task, otpt)
+            logger.info('Done!')
             break
         except Exception as e:
             logger.error('Something went wrong. Please try again!')
@@ -75,12 +82,12 @@ for i, flux in enumerate(flx_list):
 
     # Convolve new images (Set last parameter as either 'factor' OR 'beam')
     logger.info('Convolving new image and getting statistics...')
-    if clean_task in ('wsclean', '2'):
+    if cln_task == 'wsclean':
         importfits(fitsimage=otpt + '-image.fits', imagename=otpt + '.image')
     i2_conv = otpt + '.conv'
     i2_conv = myConvolve(otpt + '.image', i2_conv, 'num_of_beams')
     i2_stats = getStats(i2_conv, x0, y0, radius)
-    logger.info('DONE!\n')
+    logger.info('Done!\n')
 
     excessFlux = i2_stats['flux'][0] - i1_stats['flux'][0]
     recovery = (excessFlux / i1_stats['flux'][0]) * 100.
@@ -93,7 +100,7 @@ for i, flux in enumerate(flx_list):
     # print('----')
     if recovery > recv_th:
         logger.info('\n#####\nRecovery threshold reached.\n\
-        	Repeating process for new flux values...\n#####')
+Repeating process for new flux values...\n#####')
         break
 
 if i > 0:
@@ -110,20 +117,20 @@ for flux in new_flx_list:
     otpt = '.'.join(imgpath.split('.')[:-1]) + '_wHalo_flux_{:f}'.format(flux)
     while True:
         try:
-            run_imaging(clean_task, otpt)
+            run_imaging(cln_task, otpt)
             break
         except Exception as e:
             logger.error('Something went wrong. Please try again!')
             sys.exit(1)
 
     # Convolve new images (Set last parameter as either 'factor' OR 'beam')
-    logger.info('\nConvolving new image and getting statistics...')
-    if clean_task in ('wsclean', '2'):
+    logger.info('Convolving new image and getting statistics...')
+    if cln_task == 'wsclean':
         importfits(fitsimage=otpt + '-image.fits', imagename=otpt + '.image')
     i2_conv = otpt + '.conv'
     i2_conv = myConvolve(otpt + '.image', i2_conv, 'num_of_beams')
     i2_stats = getStats(i2_conv, x0, y0, radius)
-    logger.info('DONE!\n')
+    logger.info('Done!\n')
 
     excessFlux = i2_stats['flux'][0] - i1_stats['flux'][0]
     recovery = (excessFlux / i1_stats['flux'][0]) * 100.
