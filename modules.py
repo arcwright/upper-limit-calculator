@@ -2,13 +2,10 @@ execfile('params.py')
 execfile('mylogging.py')
 
 def replaceCheck(dir1, dir2):
-    '''
-    Function to copy a directory based on user input
-    dir1: directory to be created
-    dir2: directory to be copied
-    '''
     if os.path.exists(dir1):
+        # print('\n')
         ovr = raw_input('Directory already exists. Overwrite? (y/n): ')
+        # print('\n')
         if ovr in ('y', 'Y'):
             shutil.rmtree(dir1)
             shutil.copytree(dir2, dir1)
@@ -18,6 +15,15 @@ def replaceCheck(dir1, dir2):
     else:
         shutil.copytree(dir2, dir1)
 
+def getCoords(image, cluster):
+    ia.open(image)
+    ra = np.deg2rad(float(Ned.query_object(cluster)['RA']))
+    dec = np.deg2rad(float(Ned.query_object(cluster)['DEC']))
+    w = [ra, dec]
+    x0 = np.round(ia.topixel(w)['numeric'][0])
+    y0 = np.round(ia.topixel(w)['numeric'][1])
+    ia.close()
+    return x0, y0
 
 def freqInfo(vis):
     '''
@@ -75,15 +81,17 @@ def createHalo(imageref, centre_x, centre_y, size, totflux, ftype):
             amplitude=totflux, alpha=0.0, x_cutoff=rh/2.6)
         Z = np.sqrt((X - centre_x)**2 + (Y - centre_y)**2)
         newim = e(Z)
-    logger.info('Unnormalised Total Flux 	: {:f}'.format(np.sum(newim)))
+    logger.debug('{: <30s}{: >15f}'.format('Unnormalised Total flux:',np.sum(newim)))
     ratio = totflux/np.sum(newim)
     beam2 = ratio*newim
-    logger.info('Scaled Total Flux 		: {:f}'.format(np.sum(beam2)))
+    logger.debug('{: <30s}{: >15f}'.format('Scaled Total Flux:',np.sum(beam2)))
     ia.putchunk(beam2)
-    logger.info('Created halo with Integrated flux `{:f} Jy` and profile `{}` at a redshift `z={}` with size `{} kpc`.'.format(
-        totflux, ftype, z, l))
+    # logger.info('Created halo with total flux density [[{:f} mJy]] and profile [[{}]] \
+# at redshift [[z={}]] with size [[{:.2f} Mpc]].\n'.format(totflux*1.e3, ftype, z, l/1.e3))
+    logger.info('Created halo image with total flux density [{:.2f} mJy]\n'.format(totflux*1.e3))
     ia.close()
     return ref_halo
+
 
 def addHaloVis(msfile, halofile, flux, spix):
     '''
@@ -102,10 +110,10 @@ def addHaloVis(msfile, halofile, flux, spix):
     logger.info('Creating modified visibility file - {}'.format(myms.split('/')[-1]))
     replaceCheck(myms, msfile)
 
+    reffreq = np.max([imhead(imgpath)['refval'][2],
+                      imhead(imgpath)['refval'][3]])
+    logger.debug('Halo Reference frequency 	= {:.2f} MHz'.format(reffreq/1.e6))
     logger.info('Scaling halo flux to spw frequencies...')
-    reffreq = np.max([imhead(imgfile)['refval'][2],
-                      imhead(imgfile)['refval'][3]])
-    logger.info('Halo Reference frequency 	= {:.2f} MHz'.format(reffreq/1.e6))
 
     for j, f in enumerate(freq):
         try:
@@ -123,8 +131,8 @@ def addHaloVis(msfile, halofile, flux, spix):
             break
     default(uvsub)
     uvsub(vis=myms, reverse=True)
-    logger.info('DONE!\n')
-    logger.info('Visibility file with halo created!')
+    logger.info('Done!')
+    logger.info('Visibility file with halo created!\n')
     return myms
 
 
@@ -136,7 +144,7 @@ def cleanup(loc):
         try:
             shutil.rmtree(f)
         except Exception as e:
-            print(e)
+            logger.error(e)
 
 
 def getStats(image, x0, y0, radius):
@@ -172,7 +180,7 @@ def myConvolve(image, output, bopts):
 
 
 def estimateRMS(image, x0, y0, radius):
-    logger.info('Estimating RMS in {} around x={}, y={} with radius {:.2f}\'.\n'.
+    logger.info('Estimating RMS in {} around ({}, {}) with radius {:.2f}\'\n...'.
           format(image.split('/')[-1], x0, y0, radius/60.))
     fitsfile = '.'.join(image.split('.')[:-1]) + '.fits'
     exportfits(imagename=image, fitsimage=fitsfile, overwrite=True)
@@ -191,40 +199,39 @@ def estimateRMS(image, x0, y0, radius):
 
 
 def run_imaging(task, output):
-    logger.info('Running deconvolution now:')
-    if task in ('tclean', '1'):
+    logger.info('Running deconvolution using task {}:'.format(task))
+    if task == 'tclean':
         default(tclean)
         tclean(vis=newvis, imagename=output, niter=N, threshold=thresh, deconvolver=dcv,
                scales=scle, imsize=isize, cell=csize, weighting=weight, robust=rbst,
                gridder=grdr, wprojplanes=wproj,
                savemodel='modelcolumn', aterm=False, pblimit=0.0, wbawp=False)
-    elif task in ('wsclean', '2'):
+    elif task == 'wsclean':
         chgc_command = 'chgcentre -f -minw -shiftback {}'.format(newvis)
         subprocess.call(chgc_command.split())
         clean_command = 'wsclean -mem 25 -name {} -weight {} {} -size {} {} -scale {} -niter {} -auto-threshold {} -multiscale -multiscale-scale-bias 0.7 -pol RR {}'.format(
             output, weight, rbst, isize, isize, cell/3600, N, thresh_f, newvis)
         subprocess.call(clean_command.split())
 
-def calculate_excess(imgfile, output, x, y, r, bopts):
-    # Convolve original image (Set last parameter as either 'factor' OR 'beam')
-    i1_conv = '.'.join(imgfile.split('.')[:-1]) + '.conv'
-    #logger.info('Convolving and getting statistics for input image:')
-    i1_conv = myConvolve(imgfile, i1_conv, bopts)
+
+def calculateExcess(inpimage, opimage, x, y, r, bopts):
+    # Convolve original image (Set last parameter as either 'beam', 'factor' or 'num_of_beams')
+    i1_conv = '.'.join(imgpath.split('.')[:-1]) + '.conv'
+    i1_conv = myConvolve(imgpath, i1_conv, bopts)
     i1_stats = getStats(i1_conv, x, y, r)
-    #logger.info('DONE!\n')
 
     # Convolve new images (Set last parameter as either 'factor' OR 'beam')
-    logger.info('\nConvolving new image and getting statistics...')
-    if clean_task in ('wsclean', '2'):
-        importfits(fitsimage=otpt+'-image.fits', imagename=otpt+'.image')
+    logger.info('Convolving new image and getting statistics...')
+    if cln_task == 'wsclean':
+        importfits(fitsimage=otpt + '-image.fits', imagename=otpt + '.image')
     i2_conv = otpt + '.conv'
-    i2_conv = myConvolve(otpt+'.image', i2_conv, bopts)
+    i2_conv = myConvolve(otpt + '.image', i2_conv, bopts)
     i2_stats = getStats(i2_conv, x, y, r)
-    logger.info('DONE!\n')
+    logger.info('Done!\n')
 
-    excessFlux = i2_stats['flux'][0]-i1_stats['flux'][0]
-    recovery = (excessFlux/i1_stats['flux'][0]) * 100.
+    excessFlux = i2_stats['flux'][0] - i1_stats['flux'][0]
+    recovery = (excessFlux / i1_stats['flux'][0]) * 100.
     logger.info('Excess flux in central {:.2f}\' region = {:.2f} mJy'.format(
-            theta/60., excessFlux*1.e3))
-    logger.info('Halo flux recovered = {:.2f}%'.format(recovery))
+        theta / 60., excessFlux * 1.e3))
+    logger.info('Halo flux recovered = {:.2f}%\n----\n'.format(recovery))
     return recovery
