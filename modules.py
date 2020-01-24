@@ -2,6 +2,11 @@ execfile('params.py')
 execfile('mylogging.py')
 
 def replaceCheck(dir1, dir2):
+    '''
+    Function to copy a directory based on user input
+    dir1: directory to be created
+    dir2: directory to be copied
+    '''
     if os.path.exists(dir1):
         ovr = raw_input('Directory already exists. Overwrite? (y/n): ')
         if ovr in ('y', 'Y'):
@@ -52,7 +57,7 @@ def createHalo(imageref, centre_x, centre_y, size, totflux, ftype):
     image_x = imhead(ref_halo)['shape'][0]
     image_y = imhead(ref_halo)['shape'][1]
     newim = np.zeros([image_x, image_y])
-    Y, X = np.meshgrid(np.arange(image_y), np.arange(image_x))
+    X, Y = np.meshgrid(np.arange(image_x), np.arange(image_y))
     if ftype == 'G':
         rh = size/(2.0*np.sqrt(2.0*np.log(2.0)))
         g = Gaussian2D(totflux/(rh*np.sqrt(2*np.pi)),
@@ -61,13 +66,14 @@ def createHalo(imageref, centre_x, centre_y, size, totflux, ftype):
     elif ftype == 'P':
         rh = size/2.
         p = Polynomial1D(2, c0=-0.141, c1=1.867, c2=-0.719)
-        Z = np.sqrt((X-centre_x)**2 + (Y-centre_y)**2)
-        newim = totflux * p(Z/rh)
+        Z = np.sqrt((X - centre_x)**2 + (Y - centre_y)**2)
+        r = Z/rh
+        newim = totflux * np.where(r<1.0, p(1-r)-p(0), 0)
     elif ftype == 'E':
         rh = size/2.
         e = ExponentialCutoffPowerLaw1D(
             amplitude=totflux, alpha=0.0, x_cutoff=rh/2.6)
-        Z = np.sqrt((X-centre_x)**2 + (Y-centre_y)**2)
+        Z = np.sqrt((X - centre_x)**2 + (Y - centre_y)**2)
         newim = e(Z)
     logger.info('Unnormalised Total Flux 	: {:f}'.format(np.sum(newim)))
     ratio = totflux/np.sum(newim)
@@ -78,7 +84,6 @@ def createHalo(imageref, centre_x, centre_y, size, totflux, ftype):
         totflux, ftype, z, l))
     ia.close()
     return ref_halo
-
 
 def addHaloVis(msfile, halofile, flux, spix):
     '''
@@ -199,3 +204,27 @@ def run_imaging(task, output):
         clean_command = 'wsclean -mem 25 -name {} -weight {} {} -size {} {} -scale {} -niter {} -auto-threshold {} -multiscale -multiscale-scale-bias 0.7 -pol RR {}'.format(
             output, weight, rbst, isize, isize, cell/3600, N, thresh_f, newvis)
         subprocess.call(clean_command.split())
+
+def calculate_excess(imgfile, output, x, y, r, bopts):
+    # Convolve original image (Set last parameter as either 'factor' OR 'beam')
+    i1_conv = '.'.join(imgfile.split('.')[:-1]) + '.conv'
+    #logger.info('Convolving and getting statistics for input image:')
+    i1_conv = myConvolve(imgfile, i1_conv, bopts)
+    i1_stats = getStats(i1_conv, x, y, r)
+    #logger.info('DONE!\n')
+
+    # Convolve new images (Set last parameter as either 'factor' OR 'beam')
+    logger.info('\nConvolving new image and getting statistics...')
+    if clean_task in ('wsclean', '2'):
+        importfits(fitsimage=otpt+'-image.fits', imagename=otpt+'.image')
+    i2_conv = otpt + '.conv'
+    i2_conv = myConvolve(otpt+'.image', i2_conv, bopts)
+    i2_stats = getStats(i2_conv, x, y, r)
+    logger.info('DONE!\n')
+
+    excessFlux = i2_stats['flux'][0]-i1_stats['flux'][0]
+    recovery = (excessFlux/i1_stats['flux'][0]) * 100.
+    logger.info('Excess flux in central {:.2f}\' region = {:.2f} mJy'.format(
+            theta/60., excessFlux*1.e3))
+    logger.info('Halo flux recovered = {:.2f}%'.format(recovery))
+    return recovery
