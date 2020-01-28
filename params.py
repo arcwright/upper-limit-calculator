@@ -1,11 +1,11 @@
 # INPUT PARAMETERS (Descriptions at the end)
 bane_pth= '/home/lijo/.local/bin/BANE' 
-srcdir	= '/media/lijo/data/upper-limit-calculator/sources/A2104'
-visname	= '1540-03.GMRT325.SP2B.CAL.RR.MS'
-imgname = '1540-03.GMRT325.SP2B.PBCOR.IMAGE'
+srcdir	= '/media/lijo/data/upper-limit-calculator/sources/J1701.3+6414_2'
+visname	= 'XMM1701+641.SP2B.CAL.RR.MS'
+imgname = 'XMM1701+641.SP2B.PBCOR.IMAGE'
 vispath = os.path.join(srcdir, visname)
 imgpath = os.path.join(srcdir, imgname)
-cluster = 'A2104'
+cluster = 'RXC J1701.3+6414'
 if cluster != '':
     z = float(Ned.query_object(cluster)['Redshift'])
 else:

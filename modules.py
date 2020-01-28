@@ -159,6 +159,7 @@ def getStats(image, x0, y0, radius):
 
 
 def myConvolve(image, output, bopts):
+    inp_bmaj = imhead(image)['restoringbeam']['major']['value']*3600.
     if bopts == 'beam':
         bmaj = bparams[0]
         bmin = bparams[1]
@@ -170,7 +171,11 @@ def myConvolve(image, output, bopts):
             imhead(image)['restoringbeam']['minor']['value']*3600.
         bpa = imhead(image)['restoringbeam']['positionangle']['value']
     elif bopts == 'num_of_beams':
-        bmaj = np.round(np.sqrt((2*radius)**2/nbeams))
+        bmaj = np.round(np.sqrt(np.pi*(radius)**2/nbeams))
+        if bmaj < inp_bmaj:
+            print('Chosen beam size is smaller than input beam. Increasing beam size appropriately.')
+            fac = np.ceil(inp_bmaj/bmaj)
+            bmaj = bmaj * fac
         bmin = bmaj
         bpa = 0.0
     default(imsmooth)
@@ -229,8 +234,14 @@ def calculateExcess(inpimage, opimage, x, y, r, bopts):
     i2_stats = getStats(i2_conv, x, y, r)
     logger.info('Done!\n')
 
-    excessFlux = i2_stats['flux'][0] - i1_stats['flux'][0]
-    recovery = (excessFlux / i1_stats['flux'][0]) * 100.
+    if i1_stats['flux'][0] < 0:
+        beam = imhead(i1_conv)['restoringbeam']['major']['value']
+        nbeams = np.round(np.pi * r**2 / beam**2)
+        excessFlux = i2_stats['flux'][0] - nbeams*img_rms
+        recovery = (excessFlux / (nbeams*img_rms)) * 100.
+    else:
+        excessFlux = i2_stats['flux'][0] - i1_stats['flux'][0]
+        recovery = (excessFlux / i1_stats['flux'][0]) * 100.
     logger.info('Excess flux in central {:.2f}\' region = {:.2f} mJy'.format(
         theta / 60., excessFlux * 1.e3))
     logger.info('Halo flux recovered = {:.2f}%\n----\n'.format(recovery))

@@ -7,7 +7,7 @@ for handler in logging.root.handlers[:]:
 logger = logging.getLogger()
 now = datetime.datetime.now()
 t = now.strftime("%Y%m%d-%H%M%S")
-logname = 'ulc-{}.log'.format(t)
+logname = 'ulc-{}-{}.log'.format(cluster.replace(' ',''), t)
 
 logging.basicConfig(
 	filename=logname,

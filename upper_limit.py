@@ -31,6 +31,9 @@ from astropy.modeling.models import Gaussian2D, Polynomial1D, ExponentialCutoffP
 from astropy.cosmology import Planck15 as cosmo
 from astroquery.ned import Ned
 import numpy as np
+import warnings
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 execfile('modules.py')
 
@@ -52,47 +55,53 @@ for i, flux in enumerate(flx_list):
     newvis = addHaloVis(vispath, haloimg, flux, alpha)
     otpt = '.'.join(imgpath.split('.')[:-1]) + '_wHalo_flux_{:f}'.format(flux)
     while True:
-        try:
-            run_imaging(cln_task, otpt)
-            logger.info('Done!')
-            break
-        except Exception as e:
-            logger.error('Something went wrong. Please try again!')
-            logger.error(e)
-            sys.exit(1)
+       try:
+           run_imaging(cln_task, otpt)
+           logger.info('Done!')
+           break
+       except Exception as e:
+           logger.error('Something went wrong. Please try again!')
+           logger.error(e)
+           sys.exit(1)
     recovery = calculateExcess(imgpath, otpt, x0, y0, radius, bopts)
     cleanup(srcdir)
     clearcal(vis=vispath)
     clearstat()
-
+    if do_contours:
+    	print(otpt)
+        execfile('create_contours.py')
+        raw_input('Press Enter to continue...\n')
     if recovery > recv_th:
-        logger.info('\n#####\nRecovery threshold reached.\n\
+       logger.info('\n#####\nRecovery threshold reached.\n\
 Repeating process for new flux values...\n#####')
-        break
+       break
 
+print(i)
 if i > 0:
-    new_flx_list = np.linspace(
-        flx_list[i], flx_list[i - 1], num=6, endpoint=False)
-    new_flx_list = new_flx_list[1:]
+   new_flx_list = np.linspace(
+       flx_list[i], flx_list[i - 1], num=6, endpoint=False)
+   new_flx_list = new_flx_list[1:]
 else:
-    new_flx_list = [f * img_rms for f in np.arange(0, flx_fac[i], 10)]
-    new_flx_list = new_flx_list[:0:-1]
+   new_flx_list = [f * img_rms for f in np.arange(0, flx_fac[i], 10)]
+   new_flx_list = new_flx_list[:0:-1]
+
+print(new_flx_list)
 
 for flux in new_flx_list:
-    haloimg = createHalo(imgpath, x0, y0, hsize, flux, ftype)
-    newvis = addHaloVis(vispath, haloimg, flux, alpha)
-    otpt = '.'.join(imgpath.split('.')[:-1]) + '_wHalo_flux_{:f}'.format(flux)
-    while True:
-        try:
-            run_imaging(cln_task, otpt)
-            break
-        except Exception as e:
-            logger.error('Something went wrong. Please try again!')
-            sys.exit(1)
+   haloimg = createHalo(imgpath, x0, y0, hsize, flux, ftype)
+   newvis = addHaloVis(vispath, haloimg, flux, alpha)
+   otpt = '.'.join(imgpath.split('.')[:-1]) + '_wHalo_flux_{:f}'.format(flux)
+   while True:
+       try:
+           run_imaging(cln_task, otpt)
+           break
+       except Exception as e:
+           logger.error('Something went wrong. Please try again!')
+           sys.exit(1)
 
-    recovery = calculateExcess(imgpath, otpt, x0, y0, radius, bopts)
+   recovery = calculateExcess(imgpath, otpt, x0, y0, radius, bopts)
 
-    cleanup(srcdir)
-    clearcal(vis=vispath)
-    clearstat()
-    logger.info('----')
+   cleanup(srcdir)
+   clearcal(vis=vispath)
+   clearstat()
+   logger.info('----')
