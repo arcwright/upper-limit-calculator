@@ -10,7 +10,7 @@ t = now.strftime("%Y%m%d-%H%M%S")
 logname = 'ulc-{}-{}.log'.format(cluster.replace(' ',''), t)
 
 logging.basicConfig(
-	filename=logname,
+	filename=srcdir + '/' + logname,
 	level=logging.INFO,
 	format="%(asctime)s - %(name)s - %(message)s",
 	datefmt='%m/%d/%Y %I:%M:%S %p',
@@ -24,3 +24,4 @@ formatter = logging.Formatter('%(process)d:[%(levelname)s]: %(message)s')
 console.setFormatter(formatter)
 # add the handler to the logger
 logger.addHandler(console)
+####--------------------------------XXXX------------------------------------####

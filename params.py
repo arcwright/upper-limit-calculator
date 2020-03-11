@@ -1,15 +1,15 @@
 # INPUT PARAMETERS (Descriptions at the end)
 bane_pth= '/home/lijo/.local/bin/BANE' 
-srcdir	= '/media/lijo/data/upper-limit-calculator/sources/J1701.3+6414_2'
-visname	= 'XMM1701+641.SP2B.CAL.RR.MS'
-imgname = 'XMM1701+641.SP2B.PBCOR.IMAGE'
+srcdir	= '/media/lijo/data/upper-limit-calculator/sources/J1334.3+5030'
+visname	= 'J1334.SP2B.CAL.RR.MS'
+imgname = 'J1334.SP2B.PBCOR.IMAGE'
 vispath = os.path.join(srcdir, visname)
 imgpath = os.path.join(srcdir, imgname)
-cluster = 'RXC J1701.3+6414'
+cluster = 'RX J1334.3+5030'
 if cluster != '':
     z = float(Ned.query_object(cluster)['Redshift'])
 else:
-    z = 0.17
+    z = 0.1
 l       = 1000
 alpha   = -1.3
 ftype	= 'E'
@@ -20,7 +20,9 @@ cell   	= np.rad2deg(imhead(imgpath)['incr'][1])*3600
 hsize   = theta/cell
 
 # FLUX LEVELS
+do_fac  = True
 flx_fac = [50, 100, 200, 300, 500, 1000, 2000]
+flx_lst = []
 
 # CLEAN PARAMETERS
 cln_task= 'tclean'
@@ -47,10 +49,11 @@ smooth_f= 2
 
 # RECOVERY PARAMETERS
 recv_th = 10.0
+n_split = 10
 
 # 
 do_contours = True
-#######################
+####
 # bane_pth	= Path to BANE executable
 # srcdir	= Source Directory
 # visname	= Reference visibility file
@@ -64,7 +67,9 @@ do_contours = True
 # x0, y0	= Halo injection position
 # cell		= Pixel separation (in arcsec)
 # hsize		= Size of halo (in pixels)
+# do_fac  = Whether to use flux factors or flux list
 # flx_fac	= Flux level factors
+# flx_lst   = Manually provided flux list
 # cln_task  = Clean task to use ('tclean', 'wsclean')
 # N 		= No. of iterations
 # csize 	= Cell size
@@ -79,4 +84,6 @@ do_contours = True
 # bparams	= Beam size (bmaj("), bmin("), bpa(deg))
 # smooth_f	= Factor to smooth input beam
 # recv_th	= Threshold of Excess flux recovery at which to fine tune (in percent)
-#######################
+# n_split   = Number of levels to split during fine tuning (Default: 6)
+# do_cntrs  = Whether to do create python images with contours or not
+####--------------------------------XXXX------------------------------------####
