@@ -60,7 +60,7 @@ try:
     plt.contour(cutout.data, levels=lvls, colors='blue', alpha=0.5)
     plt.grid(color='white', ls='dashed', alpha=0.5)
     freq = hdu.header['CRVAL3']
-    plt.title('{:s} ({:.0f} MHz) [rms={:.2f} mJy/beam]'.format(cluster, freq/1.e6), img_rms)
+    plt.title('{:s} ({:.0f} MHz) [rms={:.2f} mJy/beam]'.format(cluster, freq/1.e6, img_rms))
     plt.colorbar(im)
 
     plt.pause(10)
