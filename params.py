@@ -1,11 +1,11 @@
 # INPUT PARAMETERS (Descriptions at the end)
-bane_pth= '/home/lijo/.local/bin/BANE' 
-srcdir	= '/media/lijo/data/upper-limit-calculator/sources/J1334.3+5030'
-visname	= 'J1334.SP2B.CAL.RR.MS'
-imgname = 'J1334.SP2B.PBCOR.IMAGE'
+bane_pth= '/path/to/BANE' 
+srcdir	= '/path/to/source/directory'
+visname	= '<source>.MS'
+imgname = '<source>.IMAGE'
 vispath = os.path.join(srcdir, visname)
 imgpath = os.path.join(srcdir, imgname)
-cluster = 'RX J1334.3+5030'
+cluster = '<source-name>'
 if cluster != '':
     z = float(Ned.query_object(cluster)['Redshift'])
 else:
@@ -44,15 +44,15 @@ rms_reg	= 3 * radius
 # SMOOTH PARAMETERS
 bopts	= 'num_of_beams'
 nbeams	= 100
-bparams	= (25.0, 25.0, 0.0)
+bparams	= (20.0, 20.0, 0.0)
 smooth_f= 2
 
 # RECOVERY PARAMETERS
 recv_th = 10.0
-n_split = 10
+n_split = 6
 
-# 
-do_contours = True
+do_cntrs= True
+
 ####
 # bane_pth	= Path to BANE executable
 # srcdir	= Source Directory
