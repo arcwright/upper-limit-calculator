@@ -270,7 +270,7 @@ def recoveredFlux(stats, flux, rms):
     cleanup(srcdir)
     clearcal(vis=vispath)
     clearstat()
-    if do_contours:
+    if do_cntrs:
         execfile('create_contours.py')
         prompt_with_timeout(60)
     return recv
