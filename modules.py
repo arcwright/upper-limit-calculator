@@ -77,7 +77,7 @@ def createHalo(ref_image, centre_x, centre_y, size, totflux, ftype):
     newim = np.zeros([image_x, image_y])
     Y, X = np.meshgrid(np.arange(image_y), np.arange(image_x))
     if ftype == 'G':
-        rh = size/(2.0*np.sqrt(2.0*np.log(2.0)))
+        rh = (size/2.0)/(2.0*np.sqrt(2.0*np.log(2.0)))
         g = Gaussian2D(totflux/(rh*np.sqrt(2*np.pi)),
                        centre_x, centre_y, rh, rh)
         newim = g(X, Y)
